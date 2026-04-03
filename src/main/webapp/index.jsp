@@ -2,6 +2,8 @@
 <head>
 <title>Welcome to Deployment Day</title>
 
+<meta charset="UTF-8">
+
 <style>
 body{
     margin:0;
@@ -48,16 +50,16 @@ h1{
 
 <body>
 
-<div class="Container">
-      <h1>🚀 Vijay S kardak</h1>
+<div class="container">
+      <h1>🚀 Vijay S Kardak</h1>
     <h2>Welcome to Deployment Day</h2>
 
     <div class="version">
-        Version 1.0. LIVE
+        Version 1.0.0 LIVE
     </div>
 
     <div class="footer">
-      GitHub | Jenkins | nexus | Docker Container
+      GitHub | Jenkins | Nexus | Docker Container
     </div>
 </div>
 
