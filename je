@@ -1,0 +1,117 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Code Clone') {
+            steps {
+                git branch: 'main', url: 'https://github.com/vijaykardak96k-dev/3-tier-project.git'
+            }
+        }
+
+        stage('Frontend Dependencies') {
+            steps {
+                dir('frontends') {
+                    sh '''
+                    if [ ! -d "node_modules" ]; then
+                        npm install
+                    else
+                        echo "Frontend dependencies already installed"
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend SonarQube') {
+            steps {
+                dir('frontends') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh '''
+                          /opt/sonar-scanner/bin/sonar-scanner \
+                        -Dsonar.projectName=frontend \
+                        -Dsonar.projectKey=frontend
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Backend Dependencies') {
+            steps {
+                dir('backend') {
+                    sh '''
+                    if [ ! -d "node_modules" ]; then
+                        npm install
+                    else
+                        echo "Backend dependencies already installed"
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('Backend SonarQube') {
+            steps {
+                dir('backend') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh '''
+                          /opt/sonar-scanner/bin/sonar-scanner \
+                        -Dsonar.projectName=backend \
+                        -Dsonar.projectKey=backend
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('OWASP Dependency Check') {
+            steps {
+                script {
+                    try {
+                        dependencyCheck additionalArguments: '''
+                        --scan ./ 
+                        --format XML 
+                        --format HTML
+                        ''',
+                        odcInstallation: 'DP-Check'
+
+                        dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+
+                    } catch (Exception e) {
+                        echo "Dependency Check Failed But Pipeline Continues"
+                    }
+                }
+            }
+        }
+
+        stage('Trivy File Scan') {
+            steps {
+                sh 'trivy fs . > trivyfs.txt'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker compose build'
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy image 3-tier-project-frontend:latest > frontend-image-scan.txt'
+                sh 'trivy image 3-tier-project-backend:latest > backend-image-scan.txt'
+            }
+        }
+
+        stage('Deployment') {
+            steps {
+                sh '''
+                docker compose down || true
+                docker compose up -d
+                '''
+            }
+        }
+
+    }
+}
